@@ -6,6 +6,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Suspense } from "react";
+import Providers from "./providers.js";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -93,6 +94,7 @@ export default function RootLayout({ children }) {
       <body
         className={`font-sans antialiased ${GeistSans.variable} ${GeistMono.variable}`}
       >
+        <Providers>
         <Suspense fallback={<div>Loading...</div>}>
           <a
             href="#main"
@@ -104,6 +106,7 @@ export default function RootLayout({ children }) {
           <main id="main">{children}</main>
           <SiteFooter />
         </Suspense>
+        </Providers>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

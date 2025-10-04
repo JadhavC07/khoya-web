@@ -1,17 +1,22 @@
 "use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const auth = useSelector((state) => state.auth);
+  const isLoggedIn = !!auth.accessToken;
 
   const links = [
     { href: "/", label: "Home" },
     { href: "/privacy", label: "Privacy" },
     { href: "/terms", label: "Terms" },
+    { href: "/alerts", label: "Missing Persons" },
+    {href: "/report" , label: "Report Person"}
   ];
 
   return (
@@ -45,8 +50,25 @@ export function SiteHeader() {
               {l.label}
             </Link>
           ))}
+          {/* Auth Links */}
+          {!isLoggedIn && (
+            <>
+              <Link
+                href="/login"
+                className="text-sm rounded-md px-3 py-2 bg-secondary text-secondary-foreground"
+              >
+                Login
+              </Link>
+              <Link
+                href="/register"
+                className="text-sm rounded-md px-3 py-2 bg-secondary text-secondary-foreground"
+              >
+                Register
+              </Link>
+            </>
+          )}
           <Link
-            href="/#report"
+            href="/report"
             className="text-sm rounded-md px-3 py-2 bg-primary text-primary-foreground"
           >
             Report
