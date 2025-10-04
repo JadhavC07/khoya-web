@@ -1,68 +1,67 @@
-"use client";
-
-import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "@/redux/authSlice";
-import { RootState } from "@/redux/store";
+import { Metadata } from "next";
 import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import LoginForm from "@/components/LoginForm";
+
+export const metadata = {
+  title: "Login",
+  description:
+    "Sign in to your Khoya account to report missing persons and receive alerts.",
+  alternates: { canonical: "/login" },
+  openGraph: {
+    url: "/login",
+    title: "Login | Khoya",
+    description:
+      "Sign in to your Khoya account to report missing persons and receive alerts.",
+  },
+};
 
 export default function LoginPage() {
-  const dispatch = useDispatch();
-  const { status, error, accessToken } = useSelector((state) => state.auth);
-
-  const [form, setForm] = useState({ email: "", password: "" });
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    dispatch(loginUser(form));
+  const breadcrumbsJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "/" },
+      { "@type": "ListItem", position: 2, name: "Login", item: "/login" },
+    ],
   };
 
   return (
-    <div className="max-w-md mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Login</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="email"
-          value={form.email}
-          onChange={handleChange}
-          placeholder="Email"
-          required
-          type="email"
-          className="w-full border px-3 py-2 rounded"
-        />
-        <input
-          name="password"
-          value={form.password}
-          onChange={handleChange}
-          placeholder="Password"
-          required
-          type="password"
-          className="w-full border px-3 py-2 rounded"
-        />
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="w-full bg-primary text-primary-foreground py-2 rounded"
-        >
-          {status === "loading" ? "Logging in..." : "Login"}
-        </button>
-        {status === "error" && (
-          <div className="text-red-500 text-sm">{error}</div>
-        )}
-        {accessToken && (
-          <div className="text-green-500 text-sm">Login successful!</div>
-        )}
-      </form>
-      <div className="mt-4 text-center text-sm">
-        Don't have an account?{" "}
-        <Link href="/register" className="underline text-primary">
-          Register
-        </Link>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+      />
+      <div className="mx-auto max-w-md px-4 py-16">
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-semibold text-center">
+              Welcome back
+            </CardTitle>
+            <CardDescription className="text-center">
+              Sign in to your account to continue
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LoginForm />
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/register"
+                className="text-primary hover:underline font-medium"
+              >
+                Register here
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </>
   );
 }

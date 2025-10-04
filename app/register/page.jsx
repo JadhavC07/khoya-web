@@ -1,74 +1,66 @@
-"use client";
-import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { registerUser } from "@/redux/authSlice";
-import { RootState } from "@/redux/store";
 import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import RegisterForm from "@/components/RegisterForm";
+
+export const metadata = {
+  title: "Register",
+  description:
+    "Create a Khoya account to report missing persons and help bring loved ones home.",
+  alternates: { canonical: "/register" },
+  openGraph: {
+    url: "/register",
+    title: "Register | Khoya",
+    description:
+      "Create a Khoya account to report missing persons and help bring loved ones home.",
+  },
+};
 
 export default function RegisterPage() {
-  const dispatch = useDispatch();
-  const { status, error, accessToken } = useSelector((state) => state.auth);
-
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
-
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    dispatch(registerUser(form));
+  const breadcrumbsJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "/" },
+      { "@type": "ListItem", position: 2, name: "Register", item: "/register" },
+    ],
   };
 
   return (
-    <div className="max-w-md mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-4">Register</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          placeholder="Name"
-          required
-          className="w-full border px-3 py-2 rounded"
-        />
-        <input
-          name="email"
-          value={form.email}
-          onChange={handleChange}
-          placeholder="Email"
-          required
-          type="email"
-          className="w-full border px-3 py-2 rounded"
-        />
-        <input
-          name="password"
-          value={form.password}
-          onChange={handleChange}
-          placeholder="Password"
-          required
-          type="password"
-          className="w-full border px-3 py-2 rounded"
-        />
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="w-full bg-primary text-primary-foreground py-2 rounded"
-        >
-          {status === "loading" ? "Registering..." : "Register"}
-        </button>
-        {status === "error" && (
-          <div className="text-red-500 text-sm">{error}</div>
-        )}
-        {accessToken && (
-          <div className="text-green-500 text-sm">Registration successful!</div>
-        )}
-      </form>
-      <div className="mt-4 text-center text-sm">
-        Already have an account?{" "}
-        <Link href="/login" className="underline text-primary">
-          Login
-        </Link>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+      />
+      <div className="mx-auto max-w-md px-4 py-16">
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-semibold text-center">
+              Create an account
+            </CardTitle>
+            <CardDescription className="text-center">
+              Join Khoya to help bring missing persons home
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <RegisterForm />
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link
+                href="/login"
+                className="text-primary hover:underline font-medium"
+              >
+                Login here
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </>
   );
 }

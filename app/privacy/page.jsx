@@ -1,5 +1,3 @@
-import  { Metadata } from "next";
-
 export const metadata = {
   title: "Privacy Policy",
   description:

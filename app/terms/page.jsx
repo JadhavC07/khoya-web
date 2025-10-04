@@ -1,6 +1,4 @@
-import  { Metadata } from "next";
-
-export const metadata= {
+export const metadata = {
   title: "Terms & Conditions",
   description:
     "Terms governing your use of the Khoya platform. Please read carefully before using our services.",

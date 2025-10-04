@@ -3,43 +3,68 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "@/redux/authSlice";
 import { RootState } from "@/redux/store";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginForm() {
   const [form, setForm] = useState({ email: "", password: "" });
   const dispatch = useDispatch();
-  const { status, error } = useSelector((state) => state.auth);
+  const router = useRouter();
+  const { status, error, accessToken } = useSelector((state) => state.auth);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
+
   const handleSubmit = (e) => {
     e.preventDefault();
     dispatch(loginUser(form));
   };
 
+  useEffect(() => {
+    if (status === "success" && accessToken) {
+      router.push("/");
+    }
+  }, [status, accessToken, router]);
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <input
-        name="email"
-        value={form.email}
-        onChange={handleChange}
-        placeholder="Email"
-        required
-        type="email"
-      />
-      <input
-        name="password"
-        value={form.password}
-        onChange={handleChange}
-        placeholder="Password"
-        required
-        type="password"
-      />
-      <button type="submit" disabled={status === "loading"}>
-        Login
-      </button>
-      {status === "error" && <div className="text-red-500">{error}</div>}
-      {status === "success" && (
-        <div className="text-green-500">Login successful!</div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+          placeholder="you@example.com"
+          required
+          type="email"
+          className="w-full"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          name="password"
+          value={form.password}
+          onChange={handleChange}
+          placeholder="••••••••"
+          required
+          type="password"
+          className="w-full"
+        />
+      </div>
+      <Button type="submit" disabled={status === "loading"} className="w-full">
+        {status === "loading" ? "Logging in..." : "Login"}
+      </Button>
+      {status === "error" && error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
     </form>
   );

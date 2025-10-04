@@ -1,12 +1,29 @@
 "use client";
-import { useState } from "react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useSelector, useDispatch } from "react-redux";
-import Link from "next/link";
 import { submitMissingPersonReport } from "@/redux/alertsSlice";
+import { RootState } from "@/redux/store";
+import { useState } from "react";
+import Link from "next/link";
+import { AlertCircle } from "lucide-react";
 
 export default function ReportPage() {
   const auth = useSelector((state) => state.auth);
-  const { reportStatus, reportError, reportSuccess } = useSelector((state) => state.alerts);
+  const { reportStatus, reportError, reportSuccess } = useSelector(
+    (state) => state.alerts
+  );
   const isLoggedIn = !!auth.accessToken;
   const dispatch = useDispatch();
 
@@ -18,8 +35,9 @@ export default function ReportPage() {
   });
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "image") {
+    const target = e.target;
+    const { name, value, files } = target;
+    if (name === "image" && files) {
       setForm({ ...form, image: files[0] });
     } else {
       setForm({ ...form, [name]: value });
@@ -35,71 +53,162 @@ export default function ReportPage() {
     if (form.image) {
       formData.append("image", form.image);
     }
-    dispatch(submitMissingPersonReport({ formData, accessToken: auth.accessToken }));
+    dispatch(
+      submitMissingPersonReport({ formData, accessToken: auth.accessToken })
+    );
+  };
+
+  const breadcrumbsJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "/" },
+      { "@type": "ListItem", position: 2, name: "Report", item: "/report" },
+    ],
   };
 
   if (!isLoggedIn) {
     return (
-      <div className="max-w-md mx-auto py-10 text-center">
-        <h2 className="text-xl font-bold mb-4">Login Required</h2>
-        <p className="mb-6">You must be logged in to report a missing person.</p>
-        <Link href="/login" className="mr-2 underline text-primary">
-          Login
-        </Link>
-        <span>or</span>
-        <Link href="/register" className="ml-2 underline text-primary">
-          Register
-        </Link>
-      </div>
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(breadcrumbsJsonLd),
+          }}
+        />
+        <div className="mx-auto max-w-md px-4 py-16">
+          <Card>
+            <CardHeader className="space-y-1">
+              <div className="flex items-center gap-2 text-amber-600">
+                <AlertCircle className="h-5 w-5" />
+                <CardTitle className="text-xl">
+                  Authentication Required
+                </CardTitle>
+              </div>
+              <CardDescription>
+                You must be logged in to report a missing person.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Please sign in to your account or create a new one to submit a
+                missing person report.
+              </p>
+              <div className="flex gap-3">
+                <Button asChild className="flex-1">
+                  <Link href="/login">Login</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="flex-1 bg-transparent"
+                >
+                  <Link href="/register">Register</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto py-10">
-      <h2 className="text-xl font-bold mb-4">Report a Missing Person</h2>
-      <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
-        <input
-          name="title"
-          value={form.title}
-          onChange={handleChange}
-          placeholder="Title"
-          required
-          className="w-full border px-3 py-2 rounded"
-        />
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          placeholder="Description"
-          required
-          className="w-full border px-3 py-2 rounded"
-        />
-        <input
-          name="location"
-          value={form.location}
-          onChange={handleChange}
-          placeholder="Location"
-          required
-          className="w-full border px-3 py-2 rounded"
-        />
-        <input
-          name="image"
-          type="file"
-          accept="image/*"
-          onChange={handleChange}
-          required
-          className="w-full"
-        />
-        <button
-          type="submit"
-          className="w-full bg-primary text-primary-foreground py-2 rounded"
-          disabled={reportStatus === "loading"}
-        >
-          {reportStatus === "loading" ? "Submitting..." : "Submit Report"}
-        </button>
-        {reportSuccess && <div className="text-green-600 mt-2">{reportSuccess}</div>}
-        {reportError && <div className="text-red-600 mt-2">{reportError}</div>}
-      </form>
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+      />
+      <div className="mx-auto max-w-2xl px-4 py-12">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Report a Missing Person</CardTitle>
+            <CardDescription>
+              Provide detailed information to help us spread the word and bring
+              your loved one home safely.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-6"
+              encType="multipart/form-data"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="title">Full Name *</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={form.title}
+                  onChange={handleChange}
+                  placeholder="Enter the missing person's full name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  placeholder="Provide detailed physical description, clothing, and circumstances"
+                  required
+                  rows={5}
+                  className="resize-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Last Known Location *</Label>
+                <Input
+                  id="location"
+                  name="location"
+                  value={form.location}
+                  onChange={handleChange}
+                  placeholder="City, state, or specific address"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="image">Photo *</Label>
+                <Input
+                  id="image"
+                  name="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleChange}
+                  required
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload a clear, recent photo of the missing person
+                </p>
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={reportStatus === "loading"}
+              >
+                {reportStatus === "loading"
+                  ? "Submitting Report..."
+                  : "Submit Report"}
+              </Button>
+              {reportSuccess && (
+                <Alert>
+                  <AlertDescription className="text-green-600">
+                    {reportSuccess}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {reportError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{reportError}</AlertDescription>
+                </Alert>
+              )}
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 }

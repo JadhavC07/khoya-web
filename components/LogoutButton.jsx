@@ -4,12 +4,13 @@ import { logoutUser } from "@/redux/authSlice";
 import { RootState } from "@/redux/store";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function LogoutButton() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { accessToken, refreshToken, logoutStatus, logoutError } = useSelector(
-    (state: RootState) => state.auth
+  const { accessToken, refreshToken, status } = useSelector(
+    (state) => state.auth
   );
 
   const handleLogout = () => {
@@ -19,24 +20,20 @@ export default function LogoutButton() {
   };
 
   useEffect(() => {
-    if (logoutStatus === "success") {
+    if (status === "idle" && !accessToken) {
       router.push("/login");
     }
-  }, [logoutStatus, router]);
+  }, [status, accessToken, router]);
 
   return (
-    <>
-      <button
-        onClick={handleLogout}
-        className="text-sm rounded-md px-3 py-2 bg-secondary text-secondary-foreground"
-        disabled={logoutStatus === "loading"}
-        aria-label="Logout"
-      >
-        {logoutStatus === "loading" ? "Logging out..." : "Logout"}
-      </button>
-      {logoutStatus === "error" && (
-        <span className="text-red-500 ml-2">{logoutError}</span>
-      )}
-    </>
+    <Button
+      onClick={handleLogout}
+      variant="secondary"
+      size="sm"
+      disabled={status === "loading"}
+      aria-label="Logout"
+    >
+      {status === "loading" ? "Logging out..." : "Logout"}
+    </Button>
   );
 }

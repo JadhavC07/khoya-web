@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import LogoutButton from "./LogoutButton";
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -16,7 +17,6 @@ export function SiteHeader() {
     { href: "/privacy", label: "Privacy" },
     { href: "/terms", label: "Terms" },
     { href: "/alerts", label: "Missing Persons" },
-    {href: "/report" , label: "Report Person"}
   ];
 
   return (
@@ -50,26 +50,27 @@ export function SiteHeader() {
               {l.label}
             </Link>
           ))}
-          {/* Auth Links */}
-          {!isLoggedIn && (
+          {!isLoggedIn ? (
             <>
               <Link
                 href="/login"
-                className="text-sm rounded-md px-3 py-2 bg-secondary text-secondary-foreground"
+                className="text-sm rounded-md px-3 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
               >
                 Login
               </Link>
               <Link
                 href="/register"
-                className="text-sm rounded-md px-3 py-2 bg-secondary text-secondary-foreground"
+                className="text-sm rounded-md px-3 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
               >
                 Register
               </Link>
             </>
+          ) : (
+            <LogoutButton />
           )}
           <Link
             href="/report"
-            className="text-sm rounded-md px-3 py-2 bg-primary text-primary-foreground"
+            className="text-sm rounded-md px-3 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             Report
           </Link>
