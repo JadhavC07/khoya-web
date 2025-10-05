@@ -533,34 +533,25 @@ export default function MissingPersonTab() {
               </div>
             </div>
 
-            {/* Mobile Comments Overlay - FIXED: Prevent closing on interaction */}
+            {/* Mobile Comments Modal - Clean white modal */}
             {isMobile && (
               <Dialog
                 open={isExpanded}
                 onOpenChange={(open) => {
-                  // Only allow closing via the X button, not by clicking backdrop
                   if (!open) setActiveAlertId(null);
                 }}
               >
                 <DialogContent
-                  className="w-full h-[90vh] max-w-none sm:max-w-lg p-0 border-none bg-transparent m-0"
+                  className="w-[95vw] h-[85vh] max-w-lg p-0 flex flex-col"
                   onInteractOutside={(e) => e.preventDefault()}
                 >
-                  <div className="relative h-full w-full">
-                    <Image
-                      src={alert.imageUrl || "/placeholder-user.jpg"}
-                      alt={alert.title}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black to-black/30 overflow-y-auto p-6 flex flex-col">
-                      <DialogHeader>
-                        <DialogTitle className="text-white">
-                          Comments
-                        </DialogTitle>
-                      </DialogHeader>
-                      {getCommentsSection(alert.id, true)}
-                    </div>
+                  <DialogHeader className="px-6 pt-6 pb-4 border-b">
+                    <DialogTitle className="text-xl font-semibold">
+                      Comments
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="flex-1 overflow-hidden px-6 pb-6">
+                    {getCommentsSection(alert.id, true)}
                   </div>
                 </DialogContent>
               </Dialog>
