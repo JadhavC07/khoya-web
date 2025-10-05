@@ -195,15 +195,10 @@ export default function MissingPersonTab() {
   };
 
   // FIXED: Pass alertId as parameter
-  const getCommentsSection = (alertId, isMobileView) => (
-    <div className={isMobileView ? "flex flex-col flex-1" : ""}>
-      <div
-        className={
-          isMobileView
-            ? "flex-1 overflow-y-auto space-y-4"
-            : "space-y-4 max-h-96 overflow-y-auto"
-        }
-      >
+  const renderCommentsSection = (alertId) => (
+    <div className="mt-4 border-t pt-4 space-y-4 bg-muted/20 -mx-6 px-6 py-4 rounded-b-lg">
+      {/* Comment List */}
+      <div className="space-y-4 max-h-96 overflow-y-auto">
         {commentsStatus === "loading" ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -332,7 +327,7 @@ export default function MissingPersonTab() {
                   </div>
                 )}
 
-                {/* Reply Form - FIXED: Use alertId parameter */}
+                {/* Reply Form */}
                 {replyParentId === comment.id && (
                   <form
                     onSubmit={(e) => handleReplySubmit(alertId, comment.id, e)}
@@ -368,7 +363,7 @@ export default function MissingPersonTab() {
         )}
       </div>
 
-      {/* FIXED: Use alertId parameter */}
+      {/* New Comment Form */}
       {accessToken ? (
         <form
           onSubmit={(e) => handleCommentSubmit(alertId, e)}
@@ -523,10 +518,10 @@ export default function MissingPersonTab() {
                     </Button>
                   </div>
 
-                  {/* Inline Comments for Desktop - FIXED: Pass alert.id */}
-                  {!isMobile && isExpanded && (
+                  {/* Comments Section - FIXED: Pass alert.id */}
+                  {isExpanded && (
                     <div className="mt-4 border-t pt-4 space-y-4 bg-muted/20 -mx-6 px-6 py-4 rounded-b-lg">
-                      {getCommentsSection(alert.id, false)}
+                      {renderCommentsSection(alert.id)}
                     </div>
                   )}
                 </CardContent>
@@ -550,8 +545,8 @@ export default function MissingPersonTab() {
                       Comments
                     </DialogTitle>
                   </DialogHeader>
-                  <div className="flex-1 overflow-hidden px-6 pb-6">
-                    {getCommentsSection(alert.id, true)}
+                  <div className="flex-1 overflow-hidden">
+                    {renderCommentsSection(alert.id)}
                   </div>
                 </DialogContent>
               </Dialog>
