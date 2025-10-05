@@ -32,6 +32,7 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -48,9 +49,10 @@ export default function MissingPersonTab() {
   const [replyInput, setReplyInput] = useState("");
   const [replyParentId, setReplyParentId] = useState(null);
 
+  // FIXED: Only fetch once on mount, not on every navigation
   useEffect(() => {
     dispatch(fetchAlerts());
-  }, [dispatch]);
+  }, []); // Empty dependency array - fetch only once
 
   useEffect(() => {
     if (activeAlertId) {
@@ -80,7 +82,12 @@ export default function MissingPersonTab() {
     }
   }, [alerts, dispatch]);
 
-  if (status === "loading") {
+  // Manual refresh function
+  const handleManualRefresh = () => {
+    dispatch(fetchAlerts({ forceRefresh: true }));
+  };
+
+  if (status === "loading" && alerts.length === 0) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
@@ -122,47 +129,61 @@ export default function MissingPersonTab() {
     );
   }
 
-  const handleCommentSubmit = (alertId, e) => {
+  // FIXED: Removed setTimeout, direct dispatch after action
+  const handleCommentSubmit = async (alertId, e) => {
     e.preventDefault();
     if (!commentInput.trim() || !accessToken) return;
-    dispatch(postComment({ alertId, content: commentInput, accessToken }));
+
+    await dispatch(
+      postComment({ alertId, content: commentInput, accessToken })
+    );
     setCommentInput("");
-    setTimeout(() => {
-      dispatch(fetchComments({ alertId }));
-    }, 500);
+    // Comment is already added to state by the reducer
   };
 
-  const handleReplySubmit = (alertId, parentId, e) => {
+  const handleReplySubmit = async (alertId, parentId, e) => {
     e.preventDefault();
     if (!replyInput.trim() || !accessToken) return;
-    dispatch(
+
+    await dispatch(
       postReply({ alertId, content: replyInput, parentId, accessToken })
     );
     setReplyInput("");
     setReplyParentId(null);
-    setTimeout(() => {
-      dispatch(fetchComments({ alertId }));
-    }, 500);
+    // Reply is already added to state by the reducer
   };
 
+  // FIXED: Removed setTimeout - optimistic updates handle this
   const handleVoteAlert = (alertId, type) => {
     if (!accessToken) return;
     dispatch(voteAlert({ alertId, type, accessToken }));
-    setTimeout(() => {
-      dispatch(fetchAlertVotes({ alertId }));
-    }, 300);
+    // Vote count updates immediately via optimistic update in reducer
   };
 
   const handleVoteComment = (commentId, type) => {
     if (!accessToken) return;
     dispatch(voteComment({ commentId, type, accessToken }));
-    setTimeout(() => {
-      dispatch(fetchCommentVotes({ commentId }));
-    }, 300);
+    // Vote count updates immediately via optimistic update in reducer
   };
 
   return (
     <div className="space-y-6">
+      {/* Refresh Button */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleManualRefresh}
+          disabled={status === "loading"}
+          className="gap-2"
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${status === "loading" ? "animate-spin" : ""}`}
+          />
+          Refresh Alerts
+        </Button>
+      </div>
+
       {alerts.map((alert) => {
         const alertVoteData = alertVotes[alert.id];
         const isExpanded = activeAlertId === alert.id;

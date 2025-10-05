@@ -26,6 +26,7 @@ export interface AlertsState {
   reportStatus: "idle" | "loading" | "success" | "error";
   reportError: string | null;
   reportSuccess: string | null;
+  lastFetched: number | null; // Track when data was last fetched
 }
 
 const initialState: AlertsState = {
@@ -35,19 +36,54 @@ const initialState: AlertsState = {
   reportStatus: "idle",
   reportError: null,
   reportSuccess: null,
+  lastFetched: null,
 };
 
-export const fetchAlerts = createAsyncThunk<Alert[]>(
+// Fetch alerts with optional force refresh
+export const fetchAlerts = createAsyncThunk<
+  Alert[],
+  { forceRefresh?: boolean } | undefined, // <-- FIX: Changed `void` to `undefined` here
+  { state: { alerts: AlertsState } }
+>(
   "alerts/fetchAlerts",
-  async () => {
+  async (params, thunkAPI) => {
+    // `params` will be `{ forceRefresh?: boolean } | undefined` now
+    const forceRefresh = params?.forceRefresh ?? false;
+    const state = thunkAPI.getState().alerts;
+
+    // If we have data and it's recent (less than 5 minutes old), skip fetch
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    if (
+      !forceRefresh &&
+      state.lastFetched &&
+      Date.now() - state.lastFetched < CACHE_DURATION &&
+      state.alerts.length > 0
+    ) {
+      // Use fulfillWithValue to return cached data without hitting the network
+      return thunkAPI.fulfillWithValue(state.alerts);
+    }
+
     const res = await fetch(`${BASE_URL}/api/alerts`);
     const data = await res.json();
     return data.alerts;
+  },
+  {
+    condition: (params, { getState }) => {
+      const { alerts } = getState();
+      // This line is now correctly typed as `params` includes `undefined`
+      const forceRefresh = params?.forceRefresh ?? false;
+
+      // Prevent duplicate concurrent requests
+      if (alerts.status === "loading" && !forceRefresh) {
+        return false;
+      }
+      return true;
+    },
   }
 );
 
 export const submitMissingPersonReport = createAsyncThunk<
-  any, // You can type this according to your API response
+  any,
   { formData: FormData; accessToken: string },
   { rejectValue: string }
 >(
@@ -76,7 +112,12 @@ export const submitMissingPersonReport = createAsyncThunk<
 const alertsSlice = createSlice({
   name: "alerts",
   initialState,
-  reducers: {},
+  reducers: {
+    // Manual action to clear cache and force refresh on next fetch
+    invalidateAlertsCache: (state) => {
+      state.lastFetched = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchAlerts.pending, (state) => {
@@ -88,6 +129,7 @@ const alertsSlice = createSlice({
           state.status = "success";
           state.alerts = action.payload;
           state.error = null;
+          state.lastFetched = Date.now();
         }
       )
       .addCase(fetchAlerts.rejected, (state, action) => {
@@ -102,6 +144,8 @@ const alertsSlice = createSlice({
       .addCase(submitMissingPersonReport.fulfilled, (state, action) => {
         state.reportStatus = "success";
         state.reportSuccess = "Report submitted successfully!";
+        // Invalidate cache so next fetch gets fresh data
+        state.lastFetched = null;
       })
       .addCase(submitMissingPersonReport.rejected, (state, action) => {
         state.reportStatus = "error";
@@ -110,4 +154,5 @@ const alertsSlice = createSlice({
   },
 });
 
+export const { invalidateAlertsCache } = alertsSlice.actions;
 export default alertsSlice.reducer;

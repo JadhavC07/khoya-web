@@ -13,6 +13,21 @@ interface AuthState {
   error: string | null;
 }
 
+// Load initial state from localStorage
+const loadAuthFromStorage = (): Partial<AuthState> => {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const saved = localStorage.getItem("authState");
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error("Failed to load auth state:", error);
+  }
+  return {};
+};
+
 const initialState: AuthState = {
   accessToken: "",
   refreshToken: "",
@@ -22,6 +37,19 @@ const initialState: AuthState = {
   role: "",
   status: "idle",
   error: null,
+  ...loadAuthFromStorage(), // Restore saved auth
+};
+
+// Helper to persist auth state
+const persistAuthState = (state: AuthState) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    const { status, error, ...authData } = state;
+    localStorage.setItem("authState", JSON.stringify(authData));
+  } catch (error) {
+    console.error("Failed to persist auth state:", error);
+  }
 };
 
 export const registerUser = createAsyncThunk(
@@ -101,7 +129,19 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     clearAuth: (state) => {
-      Object.assign(state, initialState);
+      Object.assign(state, {
+        accessToken: "",
+        refreshToken: "",
+        userId: null,
+        name: "",
+        email: "",
+        role: "",
+        status: "idle",
+        error: null,
+      });
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("authState");
+      }
     },
   },
   extraReducers: (builder) => {
@@ -113,6 +153,7 @@ const authSlice = createSlice({
         state.status = "success";
         state.error = null;
         Object.assign(state, action.payload);
+        persistAuthState(state);
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.status = "error";
@@ -125,6 +166,7 @@ const authSlice = createSlice({
         state.status = "success";
         state.error = null;
         Object.assign(state, action.payload);
+        persistAuthState(state);
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.status = "error";
@@ -132,9 +174,22 @@ const authSlice = createSlice({
       })
       .addCase(refreshAuthToken.fulfilled, (state, action) => {
         state.accessToken = action.payload.accessToken;
+        persistAuthState(state);
       })
       .addCase(logoutUser.fulfilled, (state) => {
-        Object.assign(state, initialState);
+        Object.assign(state, {
+          accessToken: "",
+          refreshToken: "",
+          userId: null,
+          name: "",
+          email: "",
+          role: "",
+          status: "idle",
+          error: null,
+        });
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("authState");
+        }
       });
   },
 });

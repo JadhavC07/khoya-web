@@ -264,9 +264,104 @@ const commentsSlice = createSlice({
         const { commentId, ...voteData } = action.payload;
         state.commentVotes[commentId] = voteData;
       })
+      // OPTIMISTIC UPDATE for alert votes - update immediately
+      .addCase(voteAlert.pending, (state, action) => {
+        const { alertId, type } = action.meta.arg;
+        const currentVotes = state.alertVotes[alertId] || {
+          score: 0,
+          upvotes: 0,
+          downvotes: 0,
+          userVote: null,
+        };
+
+        // Calculate optimistic update
+        let newUpvotes = currentVotes.upvotes;
+        let newDownvotes = currentVotes.downvotes;
+        const prevVote = currentVotes.userVote;
+
+        if (type === "UP") {
+          if (prevVote === "UP") {
+            // Remove upvote
+            newUpvotes -= 1;
+          } else if (prevVote === "DOWN") {
+            // Change from down to up
+            newDownvotes -= 1;
+            newUpvotes += 1;
+          } else {
+            // New upvote
+            newUpvotes += 1;
+          }
+        } else {
+          if (prevVote === "DOWN") {
+            // Remove downvote
+            newDownvotes -= 1;
+          } else if (prevVote === "UP") {
+            // Change from up to down
+            newUpvotes -= 1;
+            newDownvotes += 1;
+          } else {
+            // New downvote
+            newDownvotes += 1;
+          }
+        }
+
+        state.alertVotes[alertId] = {
+          upvotes: newUpvotes,
+          downvotes: newDownvotes,
+          score: newUpvotes - newDownvotes,
+          userVote: prevVote === type ? null : type,
+        };
+      })
       .addCase(voteAlert.fulfilled, (state, action) => {
+        // Server response confirms the vote
         const { alertId, ...voteData } = action.payload;
         state.alertVotes[alertId] = voteData;
+      })
+      .addCase(voteAlert.rejected, (state, action) => {
+        // Rollback on error - refetch the correct data
+        const { alertId } = action.meta.arg;
+        // You could store a backup and restore it here, or just refetch
+      })
+      // OPTIMISTIC UPDATE for comment votes
+      .addCase(voteComment.pending, (state, action) => {
+        const { commentId, type } = action.meta.arg;
+        const currentVotes = state.commentVotes[commentId] || {
+          score: 0,
+          upvotes: 0,
+          downvotes: 0,
+          userVote: null,
+        };
+
+        let newUpvotes = currentVotes.upvotes;
+        let newDownvotes = currentVotes.downvotes;
+        const prevVote = currentVotes.userVote;
+
+        if (type === "UP") {
+          if (prevVote === "UP") {
+            newUpvotes -= 1;
+          } else if (prevVote === "DOWN") {
+            newDownvotes -= 1;
+            newUpvotes += 1;
+          } else {
+            newUpvotes += 1;
+          }
+        } else {
+          if (prevVote === "DOWN") {
+            newDownvotes -= 1;
+          } else if (prevVote === "UP") {
+            newUpvotes -= 1;
+            newDownvotes += 1;
+          } else {
+            newDownvotes += 1;
+          }
+        }
+
+        state.commentVotes[commentId] = {
+          upvotes: newUpvotes,
+          downvotes: newDownvotes,
+          score: newUpvotes - newDownvotes,
+          userVote: prevVote === type ? null : type,
+        };
       })
       .addCase(voteComment.fulfilled, (state, action) => {
         const { commentId, ...voteData } = action.payload;
