@@ -16,7 +16,7 @@ export function SiteHeader() {
     { href: "/", label: "Home" },
     { href: "/privacy", label: "Privacy" },
     { href: "/terms", label: "Terms" },
-    { href: "/alerts", label: "Missing Persons" },
+    { href: "/alerts", label: "Missing" },
   ];
 
   return (

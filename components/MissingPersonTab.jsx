@@ -24,6 +24,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   MapPin,
   User,
   Calendar,
@@ -36,18 +42,40 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mediaQuery.matches);
+
+    const listener = (event) => setIsMobile(event.matches);
+    mediaQuery.addEventListener("change", listener);
+
+    return () => mediaQuery.removeEventListener("change", listener);
+  }, []);
+
+  return isMobile;
+}
+
 export default function MissingPersonTab() {
   const dispatch = useDispatch();
   const { alerts, status, error } = useSelector((state) => state.alerts);
-  const { comments, alertVotes, commentVotes } = useSelector(
-    (state) => state.comments
-  );
+  const {
+    comments,
+    alertVotes,
+    commentVotes,
+    status: commentsStatus,
+    error: commentsError,
+  } = useSelector((state) => state.comments);
   const accessToken = useSelector((state) => state.auth.accessToken);
 
   const [activeAlertId, setActiveAlertId] = useState(null);
   const [commentInput, setCommentInput] = useState("");
   const [replyInput, setReplyInput] = useState("");
   const [replyParentId, setReplyParentId] = useState(null);
+
+  const isMobile = useIsMobile();
 
   // FIXED: Only fetch once on mount, not on every navigation
   useEffect(() => {
@@ -165,6 +193,205 @@ export default function MissingPersonTab() {
     dispatch(voteComment({ commentId, type, accessToken }));
     // Vote count updates immediately via optimistic update in reducer
   };
+
+  // FIXED: Pass alertId as parameter
+  const getCommentsSection = (alertId, isMobileView) => (
+    <div className={isMobileView ? "flex flex-col flex-1" : ""}>
+      <div
+        className={
+          isMobileView
+            ? "flex-1 overflow-y-auto space-y-4"
+            : "space-y-4 max-h-96 overflow-y-auto"
+        }
+      >
+        {commentsStatus === "loading" ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-lg" />
+            ))}
+          </div>
+        ) : commentsError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{commentsError}</AlertDescription>
+          </Alert>
+        ) : comments && comments.length > 0 ? (
+          comments.map((comment) => {
+            const commentVoteData = commentVotes[comment.id];
+
+            return (
+              <div
+                key={comment.id}
+                className="bg-background rounded-lg p-4 space-y-3 shadow-sm"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-sm">
+                      {comment.author.name}
+                    </span>
+                  </div>
+                  <p className="text-sm leading-relaxed">{comment.content}</p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleVoteComment(comment.id, "UP")}
+                      disabled={!accessToken}
+                      className="h-7 px-2 hover:bg-green-100 hover:text-green-700"
+                    >
+                      <ThumbsUp className="h-3 w-3 mr-1" />
+                      <span className="text-xs font-semibold">
+                        {commentVoteData?.upvotes ?? comment.upvotes}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleVoteComment(comment.id, "DOWN")}
+                      disabled={!accessToken}
+                      className="h-7 px-2 hover:bg-red-100 hover:text-red-700"
+                    >
+                      <ThumbsDown className="h-3 w-3 mr-1" />
+                      <span className="text-xs font-semibold">
+                        {commentVoteData?.downvotes ?? comment.downvotes}
+                      </span>
+                    </Button>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-1 bg-muted/50 rounded-md">
+                    Score: {commentVoteData?.score ?? comment.score}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setReplyParentId(comment.id)}
+                    className="h-7 text-xs ml-auto"
+                  >
+                    Reply
+                  </Button>
+                </div>
+
+                {/* Replies */}
+                {comment.replies && comment.replies.length > 0 && (
+                  <div className="ml-4 mt-3 space-y-3 border-l-2 border-primary/20 pl-4">
+                    {comment.replies.map((reply) => {
+                      const replyVoteData = commentVotes[reply.id];
+
+                      return (
+                        <div
+                          key={reply.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex flex-col gap-1">
+                            <span className="font-semibold text-xs">
+                              {reply.author.name}
+                            </span>
+                            <p className="text-xs leading-relaxed">
+                              {reply.content}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 bg-background/50 rounded-md p-0.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleVoteComment(reply.id, "UP")
+                                }
+                                disabled={!accessToken}
+                                className="h-6 px-2 hover:bg-green-100 hover:text-green-700"
+                              >
+                                <ThumbsUp className="h-3 w-3 mr-1" />
+                                <span className="text-xs">
+                                  {replyVoteData?.upvotes ?? reply.upvotes}
+                                </span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleVoteComment(reply.id, "DOWN")
+                                }
+                                disabled={!accessToken}
+                                className="h-6 px-2 hover:bg-red-100 hover:text-red-700"
+                              >
+                                <ThumbsDown className="h-3 w-3 mr-1" />
+                                <span className="text-xs">
+                                  {replyVoteData?.downvotes ?? reply.downvotes}
+                                </span>
+                              </Button>
+                            </div>
+                            <span className="text-xs font-semibold">
+                              Score: {replyVoteData?.score ?? reply.score}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Reply Form - FIXED: Use alertId parameter */}
+                {replyParentId === comment.id && (
+                  <form
+                    onSubmit={(e) => handleReplySubmit(alertId, comment.id, e)}
+                    className="flex gap-2 mt-3"
+                  >
+                    <Input
+                      type="text"
+                      value={replyInput}
+                      onChange={(e) => setReplyInput(e.target.value)}
+                      placeholder="Write a reply..."
+                      className="flex-1"
+                    />
+                    <Button type="submit" size="sm">
+                      Send
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setReplyParentId(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </form>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No comments yet. Be the first to comment!
+          </p>
+        )}
+      </div>
+
+      {/* FIXED: Use alertId parameter */}
+      {accessToken ? (
+        <form
+          onSubmit={(e) => handleCommentSubmit(alertId, e)}
+          className="flex gap-2 pt-4 border-t"
+        >
+          <Input
+            type="text"
+            value={commentInput}
+            onChange={(e) => setCommentInput(e.target.value)}
+            placeholder="Add a comment..."
+            className="flex-1"
+          />
+          <Button type="submit" size="sm">
+            Post
+          </Button>
+        </form>
+      ) : (
+        <p className="text-xs text-muted-foreground text-center py-4 border-t">
+          Please log in to comment and vote
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -296,217 +523,48 @@ export default function MissingPersonTab() {
                     </Button>
                   </div>
 
-                  {/* Comments Section */}
-                  {isExpanded && (
+                  {/* Inline Comments for Desktop - FIXED: Pass alert.id */}
+                  {!isMobile && isExpanded && (
                     <div className="mt-4 border-t pt-4 space-y-4 bg-muted/20 -mx-6 px-6 py-4 rounded-b-lg">
-                      {/* Comment List */}
-                      <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {comments && comments.length > 0 ? (
-                          comments.map((comment) => {
-                            const commentVoteData = commentVotes[comment.id];
-
-                            return (
-                              <div
-                                key={comment.id}
-                                className="bg-background rounded-lg p-4 space-y-3 shadow-sm"
-                              >
-                                <div className="space-y-2">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <span className="font-semibold text-sm">
-                                      {comment.author.name}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm leading-relaxed">
-                                    {comment.content}
-                                  </p>
-                                </div>
-
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() =>
-                                        handleVoteComment(comment.id, "UP")
-                                      }
-                                      disabled={!accessToken}
-                                      className="h-7 px-2 hover:bg-green-100 hover:text-green-700"
-                                    >
-                                      <ThumbsUp className="h-3 w-3 mr-1" />
-                                      <span className="text-xs font-semibold">
-                                        {commentVoteData?.upvotes ??
-                                          comment.upvotes}
-                                      </span>
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() =>
-                                        handleVoteComment(comment.id, "DOWN")
-                                      }
-                                      disabled={!accessToken}
-                                      className="h-7 px-2 hover:bg-red-100 hover:text-red-700"
-                                    >
-                                      <ThumbsDown className="h-3 w-3 mr-1" />
-                                      <span className="text-xs font-semibold">
-                                        {commentVoteData?.downvotes ??
-                                          comment.downvotes}
-                                      </span>
-                                    </Button>
-                                  </div>
-                                  <span className="text-xs font-semibold px-2 py-1 bg-muted/50 rounded-md">
-                                    Score:{" "}
-                                    {commentVoteData?.score ?? comment.score}
-                                  </span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setReplyParentId(comment.id)}
-                                    className="h-7 text-xs ml-auto"
-                                  >
-                                    Reply
-                                  </Button>
-                                </div>
-
-                                {/* Replies */}
-                                {comment.replies &&
-                                  comment.replies.length > 0 && (
-                                    <div className="ml-4 mt-3 space-y-3 border-l-2 border-primary/20 pl-4">
-                                      {comment.replies.map((reply) => {
-                                        const replyVoteData =
-                                          commentVotes[reply.id];
-
-                                        return (
-                                          <div
-                                            key={reply.id}
-                                            className="bg-muted/30 rounded-lg p-3 space-y-2"
-                                          >
-                                            <div className="flex flex-col gap-1">
-                                              <span className="font-semibold text-xs">
-                                                {reply.author.name}
-                                              </span>
-                                              <p className="text-xs leading-relaxed">
-                                                {reply.content}
-                                              </p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              <div className="flex items-center gap-1 bg-background/50 rounded-md p-0.5">
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  onClick={() =>
-                                                    handleVoteComment(
-                                                      reply.id,
-                                                      "UP"
-                                                    )
-                                                  }
-                                                  disabled={!accessToken}
-                                                  className="h-6 px-2 hover:bg-green-100 hover:text-green-700"
-                                                >
-                                                  <ThumbsUp className="h-3 w-3 mr-1" />
-                                                  <span className="text-xs">
-                                                    {replyVoteData?.upvotes ??
-                                                      reply.upvotes}
-                                                  </span>
-                                                </Button>
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  onClick={() =>
-                                                    handleVoteComment(
-                                                      reply.id,
-                                                      "DOWN"
-                                                    )
-                                                  }
-                                                  disabled={!accessToken}
-                                                  className="h-6 px-2 hover:bg-red-100 hover:text-red-700"
-                                                >
-                                                  <ThumbsDown className="h-3 w-3 mr-1" />
-                                                  <span className="text-xs">
-                                                    {replyVoteData?.downvotes ??
-                                                      reply.downvotes}
-                                                  </span>
-                                                </Button>
-                                              </div>
-                                              <span className="text-xs font-semibold">
-                                                Score:{" "}
-                                                {replyVoteData?.score ??
-                                                  reply.score}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-
-                                {/* Reply Form */}
-                                {replyParentId === comment.id && (
-                                  <form
-                                    onSubmit={(e) =>
-                                      handleReplySubmit(alert.id, comment.id, e)
-                                    }
-                                    className="flex gap-2 mt-3"
-                                  >
-                                    <Input
-                                      type="text"
-                                      value={replyInput}
-                                      onChange={(e) =>
-                                        setReplyInput(e.target.value)
-                                      }
-                                      placeholder="Write a reply..."
-                                      className="flex-1"
-                                    />
-                                    <Button type="submit" size="sm">
-                                      Send
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => setReplyParentId(null)}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </form>
-                                )}
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-8">
-                            No comments yet. Be the first to comment!
-                          </p>
-                        )}
-                      </div>
-
-                      {/* New Comment Form */}
-                      {accessToken ? (
-                        <form
-                          onSubmit={(e) => handleCommentSubmit(alert.id, e)}
-                          className="flex gap-2 pt-4 border-t"
-                        >
-                          <Input
-                            type="text"
-                            value={commentInput}
-                            onChange={(e) => setCommentInput(e.target.value)}
-                            placeholder="Add a comment..."
-                            className="flex-1"
-                          />
-                          <Button type="submit" size="sm">
-                            Post
-                          </Button>
-                        </form>
-                      ) : (
-                        <p className="text-xs text-muted-foreground text-center py-4 border-t">
-                          Please log in to comment and vote
-                        </p>
-                      )}
+                      {getCommentsSection(alert.id, false)}
                     </div>
                   )}
                 </CardContent>
               </div>
             </div>
+
+            {/* Mobile Comments Overlay - FIXED: Prevent closing on interaction */}
+            {isMobile && (
+              <Dialog
+                open={isExpanded}
+                onOpenChange={(open) => {
+                  // Only allow closing via the X button, not by clicking backdrop
+                  if (!open) setActiveAlertId(null);
+                }}
+              >
+                <DialogContent
+                  className="w-full h-[90vh] max-w-none sm:max-w-lg p-0 border-none bg-transparent m-0"
+                  onInteractOutside={(e) => e.preventDefault()}
+                >
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={alert.imageUrl || "/placeholder-user.jpg"}
+                      alt={alert.title}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black to-black/30 overflow-y-auto p-6 flex flex-col">
+                      <DialogHeader>
+                        <DialogTitle className="text-white">
+                          Comments
+                        </DialogTitle>
+                      </DialogHeader>
+                      {getCommentsSection(alert.id, true)}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </Card>
         );
       })}
