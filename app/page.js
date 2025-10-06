@@ -41,7 +41,7 @@ export default function HomePage() {
             </p>
             <div className="mt-6 flex items-center gap-3">
               <Button asChild className="bg-primary text-primary-foreground">
-                <Link href="#report">{"Report a Missing Person"}</Link>
+                <Link href="/report">{"Report a Missing Person"}</Link>
               </Button>
               <Button asChild variant="secondary">
                 <Link href="#download">{"Download the App"}</Link>
