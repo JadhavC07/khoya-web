@@ -50,10 +50,11 @@ export default function MissingPersonTab() {
   const [commentInput, setCommentInput] = useState("");
   const [replyInput, setReplyInput] = useState("");
   const [replyParentId, setReplyParentId] = useState(null);
-  const [currentPage, setCurrentPage] = useState < number > 0;
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     dispatch(fetchAlerts({ page: currentPage, size: 10 }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentPage, dispatch]);
 
   useEffect(() => {
