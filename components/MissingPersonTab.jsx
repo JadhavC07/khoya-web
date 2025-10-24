@@ -38,7 +38,9 @@ import Image from "next/image";
 
 export default function MissingPersonTab() {
   const dispatch = useDispatch();
-  const { alerts, status, error } = useSelector((state) => state.alerts);
+  const { alerts, status, error, page, totalPages, first, last } = useSelector(
+    (state) => state.alerts
+  );
   const { comments, alertVotes, commentVotes } = useSelector(
     (state) => state.comments
   );
@@ -48,11 +50,11 @@ export default function MissingPersonTab() {
   const [commentInput, setCommentInput] = useState("");
   const [replyInput, setReplyInput] = useState("");
   const [replyParentId, setReplyParentId] = useState(null);
+  const [currentPage, setCurrentPage] = useState < number > 0;
 
-  // FIXED: Only fetch once on mount, not on every navigation
   useEffect(() => {
-    dispatch(fetchAlerts());
-  }, []); // Empty dependency array - fetch only once
+    dispatch(fetchAlerts({ page: currentPage, size: 10 }));
+  }, [currentPage, dispatch]);
 
   useEffect(() => {
     if (activeAlertId) {
@@ -83,9 +85,9 @@ export default function MissingPersonTab() {
   }, [alerts, dispatch]);
 
   // Manual refresh function
-  const handleManualRefresh = () => {
-    dispatch(fetchAlerts({ forceRefresh: true }));
-  };
+  // const handleManualRefresh = () => {
+  //   dispatch(fetchAlerts({ forceRefresh: true }));
+  // };
 
   if (status === "loading" && alerts.length === 0) {
     return (
@@ -129,12 +131,13 @@ export default function MissingPersonTab() {
     );
   }
 
-  // FIXED: Removed setTimeout, direct dispatch after action
   const handleCommentSubmit = async (alertId, e) => {
     e.preventDefault();
     if (!commentInput.trim() || !accessToken) return;
-    
-    await dispatch(postComment({ alertId, content: commentInput, accessToken }));
+
+    await dispatch(
+      postComment({ alertId, content: commentInput, accessToken })
+    );
     setCommentInput("");
     // Comment is already added to state by the reducer
   };
@@ -142,7 +145,7 @@ export default function MissingPersonTab() {
   const handleReplySubmit = async (alertId, parentId, e) => {
     e.preventDefault();
     if (!replyInput.trim() || !accessToken) return;
-    
+
     await dispatch(
       postReply({ alertId, content: replyInput, parentId, accessToken })
     );
@@ -151,7 +154,6 @@ export default function MissingPersonTab() {
     // Reply is already added to state by the reducer
   };
 
-  // FIXED: Removed setTimeout - optimistic updates handle this
   const handleVoteAlert = (alertId, type) => {
     if (!accessToken) return;
     dispatch(voteAlert({ alertId, type, accessToken }));
@@ -162,6 +164,26 @@ export default function MissingPersonTab() {
     if (!accessToken) return;
     dispatch(voteComment({ commentId, type, accessToken }));
     // Vote count updates immediately via optimistic update in reducer
+  };
+
+  const handleManualRefresh = () => {
+    dispatch(fetchAlerts({ page: currentPage, size: 10, forceRefresh: true }));
+  };
+
+  const handleNextPage = () => {
+    if (!last) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (!first) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  };
+
+  const handlePageClick = (pageNum) => {
+    setCurrentPage(pageNum);
   };
 
   return (
@@ -175,7 +197,9 @@ export default function MissingPersonTab() {
           disabled={status === "loading"}
           className="gap-2"
         >
-          <RefreshCw className={`h-4 w-4 ${status === "loading" ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 ${status === "loading" ? "animate-spin" : ""}`}
+          />
           Refresh Alerts
         </Button>
       </div>
@@ -506,6 +530,76 @@ export default function MissingPersonTab() {
           </Card>
         );
       })}
+      {/* Smart Pagination - shows first, last, current and nearby pages */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 mt-8">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevPage}
+            disabled={first || status === "loading"}
+          >
+            Previous
+          </Button>
+
+          <div className="flex items-center gap-1">
+            {currentPage > 2 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageClick(0)}
+                >
+                  1
+                </Button>
+                {currentPage > 3 && <span className="px-2">...</span>}
+              </>
+            )}
+
+            {[...Array(totalPages)].map((_, idx) => {
+              if (idx >= currentPage - 2 && idx <= currentPage + 2) {
+                return (
+                  <Button
+                    key={idx}
+                    variant={currentPage === idx ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handlePageClick(idx)}
+                    disabled={status === "loading"}
+                    className="w-10"
+                  >
+                    {idx + 1}
+                  </Button>
+                );
+              }
+              return null;
+            })}
+
+            {currentPage < totalPages - 3 && (
+              <>
+                {currentPage < totalPages - 4 && (
+                  <span className="px-2">...</span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageClick(totalPages - 1)}
+                >
+                  {totalPages}
+                </Button>
+              </>
+            )}
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextPage}
+            disabled={last || status === "loading"}
+          >
+            Next
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -27,6 +27,22 @@ export interface AlertsState {
   reportError: string | null;
   reportSuccess: string | null;
   lastFetched: number | null; // Track when data was last fetched
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+interface AlertsApiResponse {
+  alerts: Alert[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
 }
 
 const initialState: AlertsState = {
@@ -37,19 +53,26 @@ const initialState: AlertsState = {
   reportError: null,
   reportSuccess: null,
   lastFetched: null,
+  page: 0,
+  size: 10,
+  totalElements: 0,
+  totalPages: 0,
+  first: true,
+  last: false,
 };
 
 // Fetch alerts with optional force refresh
 export const fetchAlerts = createAsyncThunk<
-  Alert[],
-  { forceRefresh?: boolean } | undefined, // <-- FIX: Changed `void` to `undefined` here
+  AlertsApiResponse,
+  { forceRefresh?: boolean; page?: number; size?: number } | undefined,
   { state: { alerts: AlertsState } }
 >(
   "alerts/fetchAlerts",
   async (params, thunkAPI) => {
-    // `params` will be `{ forceRefresh?: boolean } | undefined` now
     const forceRefresh = params?.forceRefresh ?? false;
     const state = thunkAPI.getState().alerts;
+    const page = params?.page ?? 0;
+    const size = params?.size ?? 10;
 
     // If we have data and it's recent (less than 5 minutes old), skip fetch
     const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -59,18 +82,16 @@ export const fetchAlerts = createAsyncThunk<
       Date.now() - state.lastFetched < CACHE_DURATION &&
       state.alerts.length > 0
     ) {
-      // Use fulfillWithValue to return cached data without hitting the network
       return thunkAPI.fulfillWithValue(state.alerts);
     }
 
-    const res = await fetch(`${BASE_URL}/api/alerts`);
+    const res = await fetch(`${BASE_URL}/api/alerts?page=${page}&size=${size}`);
     const data = await res.json();
-    return data.alerts;
+    return data;
   },
   {
     condition: (params, { getState }) => {
       const { alerts } = getState();
-      // This line is now correctly typed as `params` includes `undefined`
       const forceRefresh = params?.forceRefresh ?? false;
 
       // Prevent duplicate concurrent requests
@@ -125,11 +146,17 @@ const alertsSlice = createSlice({
       })
       .addCase(
         fetchAlerts.fulfilled,
-        (state, action: PayloadAction<Alert[]>) => {
+        (state, action: PayloadAction<AlertsApiResponse>) => {
           state.status = "success";
-          state.alerts = action.payload;
+          state.alerts = action.payload.alerts;
           state.error = null;
           state.lastFetched = Date.now();
+          state.page = action.payload.page;
+          state.size = action.payload.size;
+          state.totalElements = action.payload.totalElements;
+          state.totalPages = action.payload.totalPages;
+          state.first = action.payload.first;
+          state.last = action.payload.last;
         }
       )
       .addCase(fetchAlerts.rejected, (state, action) => {
@@ -145,6 +172,7 @@ const alertsSlice = createSlice({
         state.reportStatus = "success";
         state.reportSuccess = "Report submitted successfully!";
         // Invalidate cache so next fetch gets fresh data
+        state.page = 0;
         state.lastFetched = null;
       })
       .addCase(submitMissingPersonReport.rejected, (state, action) => {
