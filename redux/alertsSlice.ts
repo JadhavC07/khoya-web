@@ -148,7 +148,7 @@ const alertsSlice = createSlice({
         fetchAlerts.fulfilled,
         (state, action: PayloadAction<AlertsApiResponse>) => {
           state.status = "success";
-          state.alerts = action.payload.alerts;
+          state.alerts = action.payload.alerts || [];
           state.error = null;
           state.lastFetched = Date.now();
           state.page = action.payload.page;
