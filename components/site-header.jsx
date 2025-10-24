@@ -134,7 +134,9 @@ export function SiteHeader() {
                   </Link>
                 </>
               ) : (
-                <LogoutButton />
+                <div onClick={closeMobileMenu}>
+                  <LogoutButton />
+                </div>
               )}
               <Link
                 href="/report"

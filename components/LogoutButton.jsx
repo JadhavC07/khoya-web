@@ -1,10 +1,9 @@
 "use client";
 import { useDispatch, useSelector } from "react-redux";
 import { logoutUser } from "@/redux/authSlice";
-import { RootState } from "@/redux/store";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function LogoutButton() {
   const dispatch = useDispatch();
@@ -13,26 +12,31 @@ export default function LogoutButton() {
     (state) => state.auth
   );
 
-  const handleLogout = () => {
-    if (accessToken && refreshToken) {
-      dispatch(logoutUser({ accessToken, refreshToken }));
+  const handleLogout = async () => {
+    if (!accessToken || !refreshToken) return;
+
+    try {
+      await dispatch(logoutUser({ accessToken, refreshToken })).unwrap();
+
+      // Redirect to home after successful logout
+      router.push("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Even if API fails, clear local state
+      dispatch({ type: "auth/clearAuth" });
+      router.push("/");
     }
   };
-
-  useEffect(() => {
-    if (status === "idle" && !accessToken) {
-      router.push("/login");
-    }
-  }, [status, accessToken, router]);
 
   return (
     <Button
       onClick={handleLogout}
-      variant="secondary"
-      size="sm"
       disabled={status === "loading"}
-      aria-label="Logout"
+      variant="outline"
+      size="sm"
+      className="gap-2"
     >
+      <LogOut className="h-4 w-4" />
       {status === "loading" ? "Logging out..." : "Logout"}
     </Button>
   );
